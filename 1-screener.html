@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Screener (Home) — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;">
+
+  <div id="th-nav"></div>
+
+  <div style="height:38px;flex:0 0 38px;display:flex;align-items:center;gap:6px;padding:0 20px;border-bottom:1px solid var(--border);overflow-x:auto;">
+    <span id="chain-all" class="th-pill active" onclick="thSetChain('all')">All Chains</span>
+    <span id="chain-ethereum" class="th-pill" onclick="thSetChain('ethereum')">ETH</span>
+    <span id="chain-solana" class="th-pill" onclick="thSetChain('solana')">SOL</span>
+    <span id="chain-base" class="th-pill" onclick="thSetChain('base')">BASE</span>
+    <span id="chain-arbitrum" class="th-pill" onclick="thSetChain('arbitrum')">ARB</span>
+    <span id="chain-bsc" class="th-pill" onclick="thSetChain('bsc')">BSC</span>
+    <span id="chain-robinhood" class="th-pill" onclick="thSetChain('robinhood')">ROBINHOOD</span>
+  </div>
+
+  <div style="height:38px;flex:0 0 38px;display:flex;align-items:center;gap:10px;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <span id="f-age" class="th-pill" onclick="thToggleQuickFilter('age')">Age &ge;1yr</span>
+    <span id="f-mcap" class="th-pill" onclick="thToggleQuickFilter('mcap')">Mcap &ge;$1B</span>
+    <span id="f-liquidity" class="th-pill" onclick="thToggleQuickFilter('liquidity')">Liquidity &ge;$5M</span>
+    <span id="f-trending" class="th-pill" onclick="thToggleQuickFilter('trending')">Trending &ge;10%</span>
+    <div style="flex:1;"></div>
+    <span style="font-size:11px;color:var(--text3);">Sort:</span>
+    <span id="sort-pill" class="th-pill active" onclick="thCycleSort()">Vol24h</span>
+  </div>
+
+  <div style="flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:16px;">
+
+    <div>
+      <div class="th-heading" style="font-size:11px;color:var(--text2);margin-bottom:8px;">Market Radar &mdash; top movers</div>
+      <div id="radar" style="display:flex;gap:10px;overflow-x:auto;"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+      <div class="th-card">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);" class="th-heading">New Pairs</div>
+        <div id="new-pairs"></div>
+      </div>
+      <div class="th-card">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);" class="th-heading">Alpha Leaderboard</div>
+        <div id="alpha-leaders"></div>
+      </div>
+    </div>
+
+    <div class="th-card" style="padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span class="th-heading" style="font-size:11px;color:var(--text2);">Signals Radar &mdash; Acc/Dis by Wyckoff phase</span>
+        <div style="display:flex;gap:6px;" id="phase-pills">
+          <span class="th-pill" data-phase="ACC" style="color:#00FF87;border-color:#00FF87;" onclick="thTogglePhase('ACC')">Accumulation</span>
+          <span class="th-pill" data-phase="DIS" style="color:#FF3B56;border-color:#FF3B56;" onclick="thTogglePhase('DIS')">Distribution</span>
+          <span class="th-pill" data-phase="MARKUP" onclick="thTogglePhase('MARKUP')">Markup</span>
+          <span class="th-pill" data-phase="MARKDOWN" onclick="thTogglePhase('MARKDOWN')">Markdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="th-card" style="flex:1;">
+      <div class="th-row th-heading" style="grid-template-columns:24px 1.6fr .8fr .8fr .6fr .5fr .5fr .5fr .5fr .8fr .7fr;height:40px;color:var(--text3);font-size:10px;">
+        <span></span><span>Token</span><span>Mcap</span><span>Price</span><span>Age</span><span>5m</span><span>1h</span><span>6h</span><span>24h</span><span>Vol24h</span><span>Liq</span>
+      </div>
+      <div id="market-rows"></div>
+      <div id="empty-state" style="display:none;padding:24px;text-align:center;color:var(--text3);font-size:11px;">No tokens match the current filters.</div>
+      <div id="pagination" style="display:flex;justify-content:center;gap:10px;padding:12px;align-items:center;font-size:11px;color:var(--text3);"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var state = { chain: "all", quickFilter: null, phase: null, sortKey: "vol", page: 1, pageSize: 8 };
+var SORT_KEYS = ["vol", "mcap", "price", "p24h"];
+var SORT_LABELS = { vol: "Vol24h", mcap: "Mcap", price: "Price", p24h: "24h %" };
+
+function thParseMoney(str) {
+  var m = String(str).replace(/[$,]/g, "").match(/([\d.]+)([BMK]?)/);
+  if (!m) return 0;
+  var n = parseFloat(m[1]);
+  if (m[2] === "B") n *= 1000;
+  if (m[2] === "K") n *= 0.001;
+  return n; // in millions
+}
+
+function thSetChain(chain) {
+  state.chain = chain;
+  state.page = 1;
+  ["all", "ethereum", "solana", "base", "arbitrum", "bsc", "robinhood"].forEach(function (c) {
+    document.getElementById("chain-" + c).classList.toggle("active", c === chain);
+  });
+  render();
+}
+
+function thToggleQuickFilter(key) {
+  state.quickFilter = state.quickFilter === key ? null : key;
+  state.page = 1;
+  ["age", "mcap", "liquidity", "trending"].forEach(function (k) {
+    document.getElementById("f-" + k).classList.toggle("active", k === state.quickFilter);
+  });
+  render();
+}
+
+function thTogglePhase(phase) {
+  state.phase = state.phase === phase ? null : phase;
+  state.page = 1;
+  document.querySelectorAll("#phase-pills .th-pill").forEach(function (el) {
+    el.classList.toggle("active", el.dataset.phase === state.phase);
+  });
+  render();
+}
+
+function thCycleSort() {
+  var idx = SORT_KEYS.indexOf(state.sortKey);
+  state.sortKey = SORT_KEYS[(idx + 1) % SORT_KEYS.length];
+  document.getElementById("sort-pill").textContent = SORT_LABELS[state.sortKey];
+  render();
+}
+
+function thPassesQuickFilter(t) {
+  if (!state.quickFilter) return true;
+  if (state.quickFilter === "age") return /yr/.test(t.age);
+  if (state.quickFilter === "mcap") return thParseMoney(t.mcap) >= 1000;
+  if (state.quickFilter === "liquidity") return thParseMoney(t.liq) >= 5;
+  if (state.quickFilter === "trending") return Math.abs(t.p24h) >= 10;
+  return true;
+}
+
+function thFilteredSorted() {
+  var rows = TH_TOKENS.filter(function (t) {
+    return (state.chain === "all" || t.chain === state.chain) &&
+      (!state.phase || t.phase === state.phase) &&
+      thPassesQuickFilter(t);
+  });
+  rows.sort(function (a, b) {
+    if (state.sortKey === "vol") return thParseMoney(b.vol) - thParseMoney(a.vol);
+    if (state.sortKey === "mcap") return thParseMoney(b.mcap) - thParseMoney(a.mcap);
+    if (state.sortKey === "price") return thParseMoney(b.price) - thParseMoney(a.price);
+    if (state.sortKey === "p24h") return b.p24h - a.p24h;
+    return 0;
+  });
+  return rows;
+}
+
+function thPctSpan(v) {
+  var c = v >= 0 ? "#00FF87" : "#FF3B56";
+  return '<span style="color:' + c + ';">' + (v >= 0 ? "+" : "") + v.toFixed(1) + "%</span>";
+}
+
+function renderRadar() {
+  var top = TH_TOKENS.slice().sort(function (a, b) { return Math.abs(b.p24h) - Math.abs(a.p24h); }).slice(0, 5);
+  document.getElementById("radar").innerHTML = top.map(function (t) {
+    var c = t.p24h >= 0 ? "#00FF87" : "#FF3B56";
+    return '<div class="th-card" style="flex:0 0 220px;height:56px;display:flex;align-items:center;padding:0 14px;gap:10px;cursor:pointer;" onclick="thGoToken(\'' + t.sym + '\')">' +
+      '<div style="width:28px;height:28px;border-radius:50%;background:var(--field);flex:0 0 28px;"></div>' +
+      '<div style="flex:1;"><div style="font-size:12px;font-weight:700;">' + t.sym + '</div><div style="font-size:10px;color:var(--text3);text-transform:capitalize;">' + t.chain + '</div></div>' +
+      '<div style="font-size:12px;font-weight:700;color:' + c + ';">' + (t.p24h >= 0 ? "+" : "") + t.p24h + "%</div>" +
+      "</div>";
+  }).join("");
+}
+
+function renderNewPairs() {
+  document.getElementById("new-pairs").innerHTML = TH_NEW_PAIRS.map(function (p) {
+    return '<div class="th-row clickable" style="grid-template-columns:16px 1fr 60px 80px;" onclick="thGoToken(\'' + p.token + '\')">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:#00FF87;"></div>' +
+      "<span>" + p.name + "</span>" +
+      '<span class="th-pill" style="font-size:9px;padding:2px 6px;">LP Lock</span>' +
+      '<span style="color:var(--text3);text-align:right;">' + p.age + "</span>" +
+      "</div>";
+  }).join("");
+}
+
+function renderAlpha() {
+  var top = TH_WALLETS.slice().sort(function (a, b) {
+    return parseFloat(b.pnl.replace(/[^\d.]/g, "")) - parseFloat(a.pnl.replace(/[^\d.]/g, ""));
+  }).slice(0, 4);
+  document.getElementById("alpha-leaders").innerHTML = top.map(function (w, i) {
+    return '<div class="th-row clickable" style="grid-template-columns:24px 1fr 90px;" onclick="thGoWallet(\'' + w.wallet + '\')">' +
+      '<span style="color:var(--text3);">#' + (i + 1) + '</span>' +
+      "<span>" + w.wallet + "</span>" +
+      '<span style="color:#00FF87;text-align:right;">' + w.pnl + "</span>" +
+      "</div>";
+  }).join("");
+}
+
+function thGoToken(sym) { window.location.href = "2-token-detail.html?token=" + sym; }
+function thGoWallet(addr) { window.location.href = "3-wallet-record.html?wallet=" + encodeURIComponent(addr); }
+
+function thToggleStar(sym, btn) {
+  var on = thToggleWatch(sym);
+  btn.style.color = on ? "#00F0FF" : "#64748B";
+}
+
+function render() {
+  var rows = thFilteredSorted();
+  var totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
+  if (state.page > totalPages) state.page = totalPages;
+  var pageRows = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
+
+  document.getElementById("empty-state").style.display = rows.length === 0 ? "block" : "none";
+
+  document.getElementById("market-rows").innerHTML = pageRows.map(function (t) {
+    var watched = thIsWatched(t.sym);
+    var phaseColor = t.phase === "ACC" ? "#00FF87" : t.phase === "DIS" ? "#FF3B56" : "#00F0FF";
+    var trendArrow = t.p24h >= 0 ? '<span style="color:#00FF87;">&#9650;</span>' : '<span style="color:#FF3B56;">&#9660;</span>';
+    return '<div class="th-row clickable" style="grid-template-columns:24px 1.6fr .8fr .8fr .6fr .5fr .5fr .5fr .5fr .8fr .7fr;" onclick="thGoToken(\'' + t.sym + '\')">' +
+      '<span onclick="event.stopPropagation();thToggleStar(\'' + t.sym + '\', this.firstChild)" style="cursor:pointer;"><span style="color:' + (watched ? "#00F0FF" : "#64748B") + ';">&#9733;</span></span>' +
+      '<span style="display:flex;align-items:center;gap:8px;"><span style="width:20px;height:20px;border-radius:50%;background:var(--field);display:inline-block;"></span>' + t.sym +
+      '<span class="th-pill" style="font-size:8px;padding:1px 5px;color:' + phaseColor + ';border-color:' + phaseColor + ';">' + t.phase + "</span></span>" +
+      "<span>" + t.mcap + "</span>" +
+      "<span>" + t.price + "</span>" +
+      '<span style="color:var(--text3);">' + t.age + "</span>" +
+      "<span>" + thPctSpan(t.p5m) + "</span>" +
+      "<span>" + thPctSpan(t.p1h) + "</span>" +
+      "<span>" + thPctSpan(t.p6h) + "</span>" +
+      "<span>" + thPctSpan(t.p24h) + " " + trendArrow + "</span>" +
+      "<span>" + t.vol + "</span>" +
+      "<span>" + t.liq + "</span>" +
+      "</div>";
+  }).join("");
+
+  var pag = "";
+  pag += '<span style="cursor:pointer;" onclick="thGoPage(' + (state.page - 1) + ')">&larr; Prev</span>';
+  for (var p = 1; p <= totalPages; p++) {
+    pag += '<span style="cursor:pointer;color:' + (p === state.page ? "#00F0FF" : "var(--text3)") + ';" onclick="thGoPage(' + p + ')">' + p + "</span>";
+  }
+  pag += '<span style="cursor:pointer;" onclick="thGoPage(' + (state.page + 1) + ')">Next &rarr;</span>';
+  pag += '<span style="margin-left:20px;">' + state.pageSize + "/page &middot; " + rows.length + " tokens</span>";
+  document.getElementById("pagination").innerHTML = pag;
+}
+
+function thGoPage(p) {
+  var rows = thFilteredSorted();
+  var totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
+  if (p < 1 || p > totalPages) return;
+  state.page = p;
+  render();
+}
+
+thRenderNav("screener");
+renderRadar();
+renderNewPairs();
+renderAlpha();
+render();
+</script>
+</body>
+</html>

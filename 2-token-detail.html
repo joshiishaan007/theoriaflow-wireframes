@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Token Detail — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="height:100vh;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+  <div id="th-nav"></div>
+
+  <div style="padding:8px;display:grid;grid-template-columns:270px minmax(480px,1fr) 350px;gap:8px;flex:1;min-height:0;">
+
+    <!-- LEFT: TokenIdentity -->
+    <div class="th-card" style="padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;min-height:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--field);flex:0 0 40px;"></div>
+        <div><div id="ti-sym" style="font-size:15px;font-weight:700;"></div><div id="ti-name" style="font-size:10px;color:var(--text3);"></div></div>
+        <div style="flex:1;"></div>
+        <span id="ti-star" style="font-size:16px;cursor:pointer;" onclick="thToggleStarHere()">&#9733;</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="th-metric"><div class="th-metric-label">Price</div><div id="ti-price" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">24h Chg</div><div id="ti-chg" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">Mcap</div><div id="ti-mcap" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">FDV</div><div id="ti-fdv" class="th-metric-val"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="th-metric"><div class="th-metric-label">Liquidity</div><div id="ti-liq" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">Vol 24h</div><div id="ti-vol" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">Holders</div><div id="ti-holders" class="th-metric-val"></div></div>
+        <div class="th-metric"><div class="th-metric-label">Whale %</div><div id="ti-whale" class="th-metric-val"></div></div>
+      </div>
+      <div id="ti-risk" style="display:none;background:rgba(255,59,86,.1);border:1px solid #FF3B56;border-radius:6px;padding:10px;font-size:10px;color:#FF3B56;"></div>
+      <div class="th-card" style="padding:10px;text-align:center;"><div class="th-metric-label">Runner-setup Rating</div><div id="ti-rating" style="font-size:20px;font-weight:800;color:#00FF87;margin-top:4px;"></div></div>
+      <a id="ti-tearsheet" href="#" style="font-size:11px;text-align:center;border:1px solid var(--border2);border-radius:6px;padding:8px;">Open Tearsheet &#8594;</a>
+    </div>
+
+    <!-- MIDDLE: PriceChart -->
+    <div class="th-card" style="display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+      <div style="display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);">
+        <span style="font-size:9.5px;padding:4px 8px;border-radius:4px;background:rgba(0,240,255,.12);color:#00F0FF;border:1px solid #00F0FF;">Wyckoff Shadows</span>
+        <span style="font-size:9.5px;padding:4px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border2);">Big Trades</span>
+        <span style="font-size:9.5px;padding:4px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border2);">VWAP</span>
+      </div>
+      <div style="flex:1;position:relative;background:linear-gradient(180deg,#0B0D10,#070809);min-height:0;overflow:hidden;">
+        <svg id="chart-svg" width="100%" height="100%" viewBox="0 0 760 420" preserveAspectRatio="xMidYMid meet" style="display:block;"></svg>
+        <div style="position:absolute;top:10px;left:14px;font-size:9.5px;color:var(--text3);">candlestick &middot; hover a big-trade badge for forensics popover</div>
+      </div>
+      <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--border);justify-content:center;" id="timeframes">
+        <span class="th-pill" data-tf="1m" onclick="thSetTf('1m')">1m</span>
+        <span class="th-pill" data-tf="5m" onclick="thSetTf('5m')">5m</span>
+        <span class="th-pill active" data-tf="15m" onclick="thSetTf('15m')">15m</span>
+        <span class="th-pill" data-tf="1h" onclick="thSetTf('1h')">1h</span>
+        <span class="th-pill" data-tf="4h" onclick="thSetTf('4h')">4h</span>
+        <span class="th-pill" data-tf="1d" onclick="thSetTf('1d')">1d</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: LiveExplorer -->
+    <div class="th-card" style="display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+      <div style="display:flex;border-bottom:1px solid var(--border);">
+        <button class="th-tab active" data-tab="explorer" onclick="showTab('explorer')" style="flex:1;">Explorer</button>
+        <button class="th-tab" data-tab="trade" onclick="showTab('trade')" style="flex:1;">Trade</button>
+        <button class="th-tab" data-tab="bridge" onclick="showTab('bridge')" style="flex:1;">Bridge</button>
+      </div>
+
+      <!-- Explorer -->
+      <div class="th-panel active flex" data-panel="explorer" style="flex-direction:column;min-height:0;flex:1;">
+        <div style="display:flex;height:20px;margin:10px 10px 4px 10px;border-radius:4px;overflow:hidden;">
+          <div id="buy-bar" style="background:#00FF87;"></div><div id="sell-bar" style="background:#FF3B56;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0 10px 8px 10px;font-size:10px;">
+          <span id="buy-pct-label" style="color:#00FF87;"></span><span id="sell-pct-label" style="color:#FF3B56;"></span>
+        </div>
+        <div style="display:flex;gap:6px;padding:0 10px 8px 10px;flex-wrap:wrap;" id="explorer-filters">
+          <span class="th-pill active" data-f="all" onclick="thSetExplorerFilter('all')">All</span>
+          <span class="th-pill" data-f="Whale" onclick="thSetExplorerFilter('Whale')">Whale</span>
+          <span class="th-pill" data-f="Smart$" onclick="thSetExplorerFilter('Smart$')">Smart$</span>
+          <span class="th-pill" data-f="Bot" onclick="thSetExplorerFilter('Bot')">Bot</span>
+          <span class="th-pill" data-f="CEX" onclick="thSetExplorerFilter('CEX')">CEX</span>
+        </div>
+        <div id="tape" style="flex:1;overflow-y:auto;"></div>
+        <div id="tape-empty" style="display:none;padding:24px;text-align:center;color:var(--text3);font-size:11px;">No swaps match this filter.</div>
+      </div>
+
+      <!-- Trade -->
+      <div class="th-panel" data-panel="trade" style="flex-direction:column;gap:6px;padding:12px;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--text2);">From</span><button class="th-metric" style="padding:5px 10px;border:none;color:inherit;font-family:inherit;cursor:pointer;" onclick="thOpenTokenSelector('in')" id="trade-in-btn"></button></div>
+        <input id="trade-amount" type="text" placeholder="0.0" class="th-metric" style="font-size:16px;border:none;width:100%;color:var(--text);" oninput="this.value=this.value.replace(/[^0-9.]/g,'');thUpdateQuote()">
+        <div class="th-balance-row"><span id="trade-usd-in">&asymp; $0.00</span><span>Balance: <span id="trade-balance-in"></span> <span class="th-max-btn" onclick="thSetMax()">MAX</span></span></div>
+
+        <div style="text-align:center;color:#00F0FF;font-size:16px;cursor:pointer;" onclick="thFlipTrade()">&#8645;</div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--text2);">To</span><button class="th-metric" style="padding:5px 10px;border:none;color:inherit;font-family:inherit;cursor:pointer;" onclick="thOpenTokenSelector('out')" id="trade-out-btn"></button></div>
+        <div id="trade-out-amount" class="th-metric" style="font-size:16px;color:var(--text3);">0.0</div>
+        <div class="th-balance-row"><span id="trade-usd-out">&asymp; $0.00</span><span>Balance: <span id="trade-balance-out"></span></span></div>
+
+        <div style="display:flex;gap:6px;margin-top:4px;" id="slippage-row">
+          <span class="th-pill active" data-slip="0.5" onclick="thSetSlippage(0.5)" style="flex:1;text-align:center;">0.5%</span>
+          <span class="th-pill" data-slip="1" onclick="thSetSlippage(1)" style="flex:1;text-align:center;">1%</span>
+          <span class="th-pill" data-slip="2" onclick="thSetSlippage(2)" style="flex:1;text-align:center;">2%</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text2);"><input type="checkbox" id="mev-toggle" checked> MEV Protection</label>
+
+        <div id="trade-quotes" class="th-card" style="display:none;padding:8px;flex-direction:column;gap:4px;font-size:10px;"></div>
+
+        <div id="trade-fees" style="display:none;flex-direction:column;gap:3px;padding:8px 2px;">
+          <div class="th-fee-line"><span>Rate</span><span class="val" id="trade-rate"></span></div>
+          <div class="th-fee-line"><span>Price impact</span><span class="val" id="trade-impact"></span></div>
+          <div class="th-fee-line"><span>Network fee</span><span class="val" id="trade-gas"></span></div>
+          <div class="th-fee-line"><span>Min received</span><span class="val" id="trade-min-received"></span></div>
+          <div class="th-refresh-note">Quote refreshes in <span id="trade-refresh-secs">10</span>s</div>
+        </div>
+
+        <div id="trade-security" style="display:none;padding:8px;border-radius:6px;font-size:10px;"></div>
+        <button id="trade-swap-btn" disabled onclick="thOpenTradeReview()" style="margin-top:4px;padding:10px 0;border-radius:6px;border:none;font-weight:800;font-size:12px;background:rgba(255,255,255,.08);color:var(--text3);font-family:'DM Sans',sans-serif;cursor:not-allowed;">Review Swap</button>
+      </div>
+
+      <!-- Bridge -->
+      <div class="th-panel" data-panel="bridge" style="flex-direction:column;gap:6px;padding:12px;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--text2);">From chain</span><select id="bridge-from" class="th-metric" style="padding:5px 10px;color:var(--text);font-family:inherit;border:none;" onchange="thBridgeChainChanged('from')"></select></div>
+        <input id="bridge-amount" type="text" placeholder="0.0" class="th-metric" style="font-size:16px;border:none;width:100%;color:var(--text);" oninput="this.value=this.value.replace(/[^0-9.]/g,'');thUpdateBridgeRoutes()">
+        <div class="th-balance-row"><span id="bridge-usd-in">&asymp; $0.00</span><span>Balance: <span id="bridge-balance-in"></span> <span class="th-max-btn" onclick="thSetBridgeMax()">MAX</span></span></div>
+
+        <div style="text-align:center;color:#00F0FF;font-size:16px;cursor:pointer;" onclick="thFlipBridge()">&#8645;</div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--text2);">To chain</span><select id="bridge-to" class="th-metric" style="padding:5px 10px;color:var(--text);font-family:inherit;border:none;" onchange="thBridgeChainChanged('to')"></select></div>
+        <div id="bridge-est-receive" class="th-metric" style="font-size:16px;color:var(--text3);">0.0</div>
+
+        <div id="bridge-routes" style="display:flex;flex-direction:column;gap:4px;"></div>
+
+        <div id="bridge-fees" style="display:none;flex-direction:column;gap:3px;padding:8px 2px;">
+          <div class="th-fee-line"><span>Source gas</span><span class="val" id="bridge-gas-from"></span></div>
+          <div class="th-fee-line"><span>Destination gas</span><span class="val" id="bridge-gas-to"></span></div>
+          <div class="th-fee-line"><span>Bridge fee (0.30%)</span><span class="val" id="bridge-fee-pct"></span></div>
+          <div class="th-refresh-note">Quote refreshes in <span id="bridge-refresh-secs">10</span>s</div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text3);padding:4px 0;">
+          <span id="stage-initiated">&#9679; Initiated</span><span id="stage-relaying">&rarr; Relaying</span><span id="stage-settled">&rarr; Settled</span>
+        </div>
+        <button id="bridge-submit-btn" disabled onclick="thOpenBridgeReview()" style="padding:10px 0;border-radius:6px;border:none;font-weight:800;font-size:12px;background:rgba(255,255,255,.08);color:var(--text3);font-family:'DM Sans',sans-serif;cursor:not-allowed;">Review Bridge</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Review-before-confirm modal (shared by Trade + Bridge) -->
+<div class="modal-overlay" id="review-modal" onclick="thCloseReview()">
+  <div class="th-card" style="width:340px;padding:18px;" onclick="event.stopPropagation()">
+    <div id="review-body"></div>
+  </div>
+</div>
+
+<!-- Token selector modal (Trade tab) -->
+<div class="modal-overlay" id="token-selector" onclick="thCloseTokenSelector()">
+  <div class="th-card" style="width:320px;max-height:70vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
+    <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+      <span style="font-size:12px;font-weight:800;">Select a token</span>
+      <span style="cursor:pointer;color:var(--text2);" onclick="thCloseTokenSelector()">&#10005;</span>
+    </div>
+    <input id="token-selector-search" type="text" placeholder="Search tokens" oninput="thRenderTokenSelector()" style="margin:10px;padding:6px 10px;background:var(--field);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;">
+    <div id="token-selector-list" style="overflow-y:auto;padding:0 8px 8px 8px;"></div>
+  </div>
+</div>
+
+<script>
+var token = thTokenBySym(thQueryParam("token") || "PEPE");
+var explorerState = { filter: "all", rows: [] };
+var tradeState = { in: null, out: null, slippage: 0.5, swapped: false, lastQuote: null };
+var bridgeState = { from: token.chain, to: null, selectedRoute: null, stage: "idle", timeouts: [] };
+var chartState = { tf: "15m" };
+
+function thRng(seed) {
+  var h = 1779033703 ^ String(seed).length;
+  for (var i = 0; i < String(seed).length; i++) { h = Math.imul(h ^ seed.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+function thPriceNum(str) {
+  return parseFloat(String(str).replace(/[$,]/g, "")) || 0;
+}
+
+function renderIdentity() {
+  document.getElementById("ti-sym").textContent = token.sym;
+  document.getElementById("ti-name").textContent = token.name + " · " + token.chain;
+  document.getElementById("ti-price").textContent = token.price;
+  var chgEl = document.getElementById("ti-chg");
+  chgEl.textContent = (token.p24h >= 0 ? "+" : "") + token.p24h + "%";
+  chgEl.style.color = token.p24h >= 0 ? "#00FF87" : "#FF3B56";
+  document.getElementById("ti-mcap").textContent = token.mcap;
+  document.getElementById("ti-fdv").textContent = token.fdv;
+  document.getElementById("ti-liq").textContent = token.liq;
+  document.getElementById("ti-vol").textContent = token.vol;
+  document.getElementById("ti-holders").textContent = token.holders;
+  document.getElementById("ti-whale").textContent = token.whalePct;
+  document.getElementById("ti-rating").textContent = token.rating;
+  document.getElementById("ti-tearsheet").href = "4-tearsheet-dock.html?token=" + token.sym;
+  if (token.risk) {
+    var r = document.getElementById("ti-risk");
+    r.style.display = "block";
+    r.textContent = "⚠ " + token.risk;
+  }
+  thUpdateStar();
+}
+function thUpdateStar() {
+  document.getElementById("ti-star").style.color = thIsWatched(token.sym) ? "#00F0FF" : "#88A0C8";
+}
+function thToggleStarHere() { thToggleWatch(token.sym); thUpdateStar(); }
+
+// Real OHLC candlesticks (box body + high/low wick), not a line — this is a PnL
+// chart, and a line chart hides the open/high/low/close range a trader needs.
+// Sized like an actual stock/crypto chart: many thin bars with breathing room
+// between them, faint gridlines, and a real price axis — not a handful of fat blocks.
+function renderChart() {
+  var r = thRng(token.sym + ":candles:" + (chartState.tf || "15m"));
+  var barCount = 64;
+  var chartW = 760, chartH = 420;
+  var padTop = 18, padBottom = 26, padRight = 58, padLeft = 6;
+  var usableW = chartW - padLeft - padRight;
+  var usableH = chartH - padTop - padBottom;
+  var barW = usableW / barCount;
+  var candleW = Math.max(1.2, barW * 0.42);
+
+  var priceNow = thPriceNum(token.price);
+  var bars = [];
+  var level = 100;
+  for (var i = 0; i < barCount; i++) {
+    var open = level;
+    var drift = (r() - 0.5) * 3.2;
+    var close = Math.max(20, open + drift);
+    var high = Math.max(open, close) + r() * 1.8;
+    var low = Math.max(5, Math.min(open, close) - r() * 1.8);
+    bars.push({ open: open, close: close, high: high, low: low });
+    level = close;
+  }
+  var minV = Math.min.apply(null, bars.map(function (b) { return b.low; }));
+  var maxV = Math.max.apply(null, bars.map(function (b) { return b.high; }));
+  var span = Math.max(1, maxV - minV);
+  var pad = span * 0.08;
+  minV -= pad; maxV += pad; span = maxV - minV;
+  function yFor(v) { return padTop + usableH - ((v - minV) / span) * usableH; }
+  function priceLabel(level) {
+    var p = priceNow * (level / 100);
+    if (p >= 1) return "$" + p.toFixed(2);
+    if (p >= 0.01) return "$" + p.toFixed(4);
+    return "$" + p.toPrecision(2);
+  }
+
+  var svg = "";
+  // gridlines + price axis (right side, like a real chart)
+  var gridLines = 4;
+  for (var g = 0; g <= gridLines; g++) {
+    var lv = minV + (span * g) / gridLines;
+    var gy = yFor(lv);
+    svg += '<line x1="' + padLeft + '" y1="' + gy + '" x2="' + (chartW - padRight) + '" y2="' + gy + '" stroke="rgba(255,255,255,.05)" stroke-width="1"/>';
+    svg += '<text x="' + (chartW - padRight + 8) + '" y="' + (gy + 3) + '" font-size="9" fill="#5C6B87" font-family="JetBrains Mono, monospace">' + priceLabel(lv) + "</text>";
+  }
+
+  var bigTradeIdx = [Math.floor(barCount * 0.28), Math.floor(barCount * 0.71)];
+  bars.forEach(function (b, i) {
+    var cx = padLeft + i * barW + barW / 2;
+    var up = b.close >= b.open;
+    var color = up ? "#00FF87" : "#FF3B56";
+    var bodyTop = yFor(Math.max(b.open, b.close));
+    var bodyBottom = yFor(Math.min(b.open, b.close));
+    var bodyH = Math.max(1, bodyBottom - bodyTop);
+    svg += '<line x1="' + cx + '" y1="' + yFor(b.high) + '" x2="' + cx + '" y2="' + yFor(b.low) + '" stroke="' + color + '" stroke-width="1" opacity=".9"/>';
+    svg += '<rect x="' + (cx - candleW / 2) + '" y="' + bodyTop + '" width="' + candleW + '" height="' + bodyH + '" fill="' + color + '" rx="0.5"/>';
+    if (bigTradeIdx.indexOf(i) !== -1) {
+      svg += '<circle cx="' + cx + '" cy="' + (yFor(b.high) - 10) + '" r="3.5" fill="' + color + '" opacity=".9"/>';
+    }
+  });
+
+  // dashed current-price line at the last close, like a live ticker
+  var lastY = yFor(bars[bars.length - 1].close);
+  svg += '<line x1="' + padLeft + '" y1="' + lastY + '" x2="' + (chartW - padRight) + '" y2="' + lastY + '" stroke="#00F0FF" stroke-width="1" stroke-dasharray="3,3" opacity=".55"/>';
+  svg += '<rect x="' + (chartW - padRight + 2) + '" y="' + (lastY - 8) + '" width="' + (padRight - 2) + '" height="16" fill="#00F0FF"/>';
+  svg += '<text x="' + (chartW - padRight + 6) + '" y="' + (lastY + 3) + '" font-size="9" font-weight="700" fill="#041019" font-family="JetBrains Mono, monospace">' + priceLabel(bars[bars.length - 1].close) + "</text>";
+
+  document.getElementById("chart-svg").innerHTML = svg;
+}
+function thSetTf(tf) {
+  document.querySelectorAll("#timeframes .th-pill").forEach(function (el) { el.classList.toggle("active", el.dataset.tf === tf); });
+  chartState.tf = tf;
+  renderChart();
+}
+
+function showTab(name) {
+  document.querySelectorAll(".th-tab").forEach(function (el) { el.classList.toggle("active", el.dataset.tab === name); });
+  document.querySelectorAll(".th-panel").forEach(function (el) { el.classList.toggle("active", el.dataset.panel === name); });
+}
+
+// --- Explorer tab ---
+var BADGE_POOL = [
+  { badge: null, weight: 0.55 },
+  { badge: "Whale", weight: 0.14, color: "#00F0FF", bg: "rgba(0,240,255,.12)" },
+  { badge: "Mega Whale", weight: 0.04, color: "#FBBF24", bg: "rgba(245,158,11,.2)" },
+  { badge: "Smart$", weight: 0.08, color: "#00F0FF", bg: "rgba(0,240,255,.12)" },
+  { badge: "Bot", weight: 0.1, color: "#F472B6", bg: "rgba(244,114,182,.15)" },
+  { badge: "CEX", weight: 0.09, color: "#F59E0B", bg: "rgba(245,158,11,.12)" }
+];
+function thPickBadge(r) {
+  var roll = r(), acc = 0;
+  for (var i = 0; i < BADGE_POOL.length; i++) { acc += BADGE_POOL[i].weight; if (roll <= acc) return BADGE_POOL[i]; }
+  return BADGE_POOL[0];
+}
+function thGenerateTapeRows(count) {
+  var r = thRng(token.sym + ":tape:" + Date.now() + ":" + Math.random());
+  var rows = [], t = 0;
+  var buys = 0;
+  for (var i = 0; i < count; i++) {
+    t += Math.floor(4 + r() * 40);
+    var dir = r() > 0.45 ? 1 : -1;
+    if (dir === 1) buys++;
+    var b = thPickBadge(r);
+    rows.push({ age: t, dir: dir, amt: "$" + Math.round(200 + r() * 9000).toLocaleString(), badge: b.badge, color: b.color, bg: b.bg });
+  }
+  return { rows: rows, buyPct: Math.round((buys / count) * 100) };
+}
+function renderTape() {
+  var rows = explorerState.rows.filter(function (row) {
+    if (explorerState.filter === "all") return true;
+    if (explorerState.filter === "Whale") return row.badge === "Whale" || row.badge === "Mega Whale";
+    return row.badge === explorerState.filter;
+  });
+  document.getElementById("tape-empty").style.display = rows.length === 0 ? "block" : "none";
+  document.getElementById("tape").innerHTML = rows.map(function (row) {
+    var dirLabel = row.dir === 1 ? '<span style="font-weight:700;color:#00FF87;">BUY</span>' : '<span style="font-weight:700;color:#FF3B56;">SELL</span>';
+    var badgeHtml = row.badge
+      ? '<span style="background:' + row.bg + ';color:' + row.color + ';border:1px solid ' + row.color + ';border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;">' + row.badge + "</span>"
+      : '<span style="color:var(--text3);">0x' + Math.abs(row.age * 7919 % 9999).toString(16) + "..</span>";
+    return '<div style="display:grid;grid-template-columns:44px 44px 1fr 90px;align-items:center;height:34px;padding:0 10px;font-size:10.5px;border-bottom:1px solid rgba(255,255,255,.04);">' +
+      '<span style="color:var(--text3);">' + row.age + "s</span>" + "<span>" + dirLabel + "</span>" +
+      "<span>" + row.amt + " @ " + token.price + "</span>" +
+      '<span style="text-align:right;">' + badgeHtml + "</span></div>";
+  }).join("");
+}
+function thSetExplorerFilter(f) {
+  explorerState.filter = f;
+  document.querySelectorAll("#explorer-filters .th-pill").forEach(function (el) { el.classList.toggle("active", el.dataset.f === f); });
+  renderTape();
+}
+function initExplorer() {
+  var gen = thGenerateTapeRows(40);
+  explorerState.rows = gen.rows;
+  document.getElementById("buy-bar").style.width = gen.buyPct + "%";
+  document.getElementById("sell-bar").style.width = (100 - gen.buyPct) + "%";
+  document.getElementById("buy-pct-label").textContent = "Buy " + gen.buyPct + "%";
+  document.getElementById("sell-pct-label").textContent = "Sell " + (100 - gen.buyPct) + "%";
+  renderTape();
+  setInterval(function () {
+    var r = thRng(token.sym + ":live:" + Date.now());
+    var b = thPickBadge(r);
+    var dir = r() > 0.45 ? 1 : -1;
+    explorerState.rows.unshift({ age: 0, dir: dir, amt: "$" + Math.round(200 + r() * 9000).toLocaleString(), badge: b.badge, color: b.color, bg: b.bg });
+    explorerState.rows.forEach(function (row) { row.age += 3; });
+    if (explorerState.rows.length > 60) explorerState.rows.pop();
+    renderTape();
+  }, 2600);
+}
+
+// --- Trade tab ---
+var wallet = thConnectedWallet();
+var tradeRefreshTimer = null, tradeRefreshCountdown = null;
+
+function thOpenTokenSelector(side) {
+  tradeState.selectorSide = side;
+  document.getElementById("token-selector").classList.add("open");
+  document.getElementById("token-selector-search").value = "";
+  thRenderTokenSelector();
+}
+function thCloseTokenSelector() { document.getElementById("token-selector").classList.remove("open"); }
+function thRenderTokenSelector() {
+  var q = document.getElementById("token-selector-search").value.trim().toLowerCase();
+  var exclude = tradeState.selectorSide === "in" ? tradeState.out : tradeState.in;
+  var list = thTokensForChain(token.chain).filter(function (t) {
+    if (exclude && t.sym === exclude.sym) return false;
+    return !q || t.sym.toLowerCase().indexOf(q) !== -1 || t.name.toLowerCase().indexOf(q) !== -1;
+  });
+  document.getElementById("token-selector-list").innerHTML = list.map(function (t) {
+    return '<div style="display:flex;justify-content:space-between;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--text);font-size:12px;" onclick="thPickToken(\'' + t.sym + '\')">' +
+      "<span>" + t.sym + "</span><span style='color:var(--text3);font-size:10px;'>" + t.name + "</span></div>";
+  }).join("");
+}
+function thPickToken(sym) {
+  var t = thTokenBySym(sym);
+  if (tradeState.selectorSide === "in") tradeState.in = t; else tradeState.out = t;
+  thCloseTokenSelector();
+  thRefreshTradeButtons();
+  thUpdateQuote();
+}
+function thRefreshTradeButtons() {
+  document.getElementById("trade-in-btn").textContent = tradeState.in.sym + " ▾";
+  document.getElementById("trade-out-btn").textContent = tradeState.out.sym + " ▾";
+  var addr = wallet ? wallet.address : "0xDEMO";
+  document.getElementById("trade-balance-in").textContent = thFakeBalance(tradeState.in.sym, addr) + " " + tradeState.in.sym;
+  document.getElementById("trade-balance-out").textContent = thFakeBalance(tradeState.out.sym, addr) + " " + tradeState.out.sym;
+}
+function thSetMax() {
+  var addr = wallet ? wallet.address : "0xDEMO";
+  document.getElementById("trade-amount").value = thFakeBalance(tradeState.in.sym, addr);
+  thUpdateQuote();
+}
+function thFlipTrade() {
+  var tmp = tradeState.in; tradeState.in = tradeState.out; tradeState.out = tmp;
+  document.getElementById("trade-amount").value = "";
+  tradeState.swapped = false;
+  thRefreshTradeButtons();
+  thUpdateQuote();
+}
+function thSetSlippage(v) {
+  tradeState.slippage = v;
+  document.querySelectorAll("#slippage-row .th-pill").forEach(function (el) { el.classList.toggle("active", parseFloat(el.dataset.slip) === v); });
+}
+function thUpdateQuote(skipTimerReset) {
+  var amtStr = document.getElementById("trade-amount").value;
+  var amt = parseFloat(amtStr);
+  var btn = document.getElementById("trade-swap-btn");
+  var priceInNum = thPriceNum(tradeState.in.price), priceOutNum = thPriceNum(tradeState.out.price);
+  document.getElementById("trade-usd-in").textContent = "≈ $" + ((amt || 0) * priceInNum).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (!amt || amt <= 0) {
+    document.getElementById("trade-out-amount").textContent = "0.0";
+    document.getElementById("trade-out-amount").style.color = "var(--text3)";
+    document.getElementById("trade-usd-out").textContent = "≈ $0.00";
+    document.getElementById("trade-quotes").style.display = "none";
+    document.getElementById("trade-fees").style.display = "none";
+    document.getElementById("trade-security").style.display = "none";
+    btn.disabled = true; btn.style.background = "rgba(255,255,255,.08)"; btn.style.color = "var(--text3)"; btn.style.cursor = "not-allowed";
+    clearInterval(tradeRefreshTimer);
+    return;
+  }
+  var rate = priceInNum / (priceOutNum || 1);
+  var out = amt * rate;
+  var r = thRng(tradeState.in.sym + ":" + tradeState.out.sym + ":quote:" + amtStr);
+  var sources = ["1inch", "0x Protocol", "Jupiter"];
+  var quotes = sources.map(function (s) { return { name: s, val: out * (1 + (r() - 0.5) * 0.03) }; });
+  var bestIdx = 0;
+  for (var i = 1; i < quotes.length; i++) if (quotes[i].val > quotes[bestIdx].val) bestIdx = i;
+  document.getElementById("trade-out-amount").textContent = out.toFixed(6);
+  document.getElementById("trade-out-amount").style.color = "#FFFFFF";
+  document.getElementById("trade-usd-out").textContent = "≈ $" + (out * priceOutNum).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  var qEl = document.getElementById("trade-quotes");
+  qEl.style.display = "flex";
+  qEl.innerHTML = quotes.map(function (q, i) {
+    var c = i === bestIdx ? "#00FF87" : "var(--text2)";
+    return '<div style="display:flex;justify-content:space-between;color:' + c + ';"><span>' + q.name + (i === bestIdx ? " ✓ best" : "") + '</span><span>' + q.val.toFixed(6) + "</span></div>";
+  }).join("");
+
+  var impactPct = Math.min(14, (amt * priceInNum / 20000) * (1 + r() * 0.6));
+  var gasUsd = (TH_GAS_BY_CHAIN[token.chain] || TH_GAS_BY_CHAIN.ethereum).feeUsd;
+  var minReceived = out * (1 - tradeState.slippage / 100);
+  document.getElementById("trade-fees").style.display = "flex";
+  document.getElementById("trade-rate").textContent = "1 " + tradeState.in.sym + " = " + rate.toFixed(6) + " " + tradeState.out.sym;
+  var impactEl = document.getElementById("trade-impact");
+  impactEl.textContent = impactPct.toFixed(2) + "%";
+  impactEl.className = "val" + (impactPct > 8 ? " th-impact-danger" : impactPct > 3 ? " th-impact-warn" : "");
+  document.getElementById("trade-gas").textContent = "~$" + gasUsd.toFixed(2);
+  document.getElementById("trade-min-received").textContent = minReceived.toFixed(6) + " " + tradeState.out.sym;
+
+  var honeyRoll = r();
+  var honeypot = honeyRoll < 0.06;
+  var warning = !honeypot && honeyRoll < 0.2;
+  var secEl = document.getElementById("trade-security");
+  secEl.style.display = "block";
+  if (honeypot) {
+    secEl.style.border = "1px solid #FF3B56"; secEl.style.background = "rgba(255,59,86,.1)"; secEl.style.color = "#FF3B56";
+    secEl.textContent = "🛡 Honeypot detected";
+  } else if (warning) {
+    secEl.style.border = "1px solid #F59E0B"; secEl.style.background = "rgba(245,158,11,.1)"; secEl.style.color = "#F59E0B";
+    secEl.textContent = "🛡 Elevated sell tax — proceed with caution";
+  } else {
+    secEl.style.border = "1px solid #00FF87"; secEl.style.background = "rgba(0,255,135,.08)"; secEl.style.color = "#00FF87";
+    secEl.textContent = "🛡 Theoria Shield: Safe";
+  }
+  tradeState.lastQuote = { honeypot: honeypot, out: out, impactPct: impactPct, gasUsd: gasUsd, minReceived: minReceived, rate: rate };
+  btn.disabled = honeypot;
+  btn.style.cursor = honeypot ? "not-allowed" : "pointer";
+  btn.style.background = honeypot ? "rgba(255,255,255,.08)" : "#00F0FF";
+  btn.style.color = honeypot ? "var(--text3)" : "#041019";
+  btn.textContent = "Review Swap";
+
+  if (!skipTimerReset) thResetTradeRefreshTimer();
+}
+function thResetTradeRefreshTimer() {
+  clearInterval(tradeRefreshTimer);
+  tradeRefreshCountdown = 10;
+  document.getElementById("trade-refresh-secs").textContent = tradeRefreshCountdown;
+  tradeRefreshTimer = setInterval(function () {
+    tradeRefreshCountdown--;
+    if (tradeRefreshCountdown <= 0) { thUpdateQuote(true); return; }
+    var el = document.getElementById("trade-refresh-secs");
+    if (el) el.textContent = tradeRefreshCountdown;
+  }, 1000);
+}
+
+// --- Bridge tab ---
+var bridgeRefreshTimer = null, bridgeRefreshCountdown = null;
+
+function thPopulateBridgeSelects() {
+  var fromSel = document.getElementById("bridge-from");
+  var toSel = document.getElementById("bridge-to");
+  fromSel.innerHTML = TH_CHAINS.filter(function (c) { return c !== bridgeState.to; }).map(function (c) {
+    return '<option value="' + c + '"' + (c === bridgeState.from ? " selected" : "") + ">" + c + "</option>";
+  }).join("");
+  toSel.innerHTML = TH_CHAINS.filter(function (c) { return c !== bridgeState.from; }).map(function (c) {
+    return '<option value="' + c + '"' + (c === bridgeState.to ? " selected" : "") + ">" + c + "</option>";
+  }).join("");
+  var addr = wallet ? wallet.address : "0xDEMO";
+  var tokIn = thTokensForChain(bridgeState.from)[0];
+  document.getElementById("bridge-balance-in").textContent = thFakeBalance(tokIn.sym, addr) + " " + tokIn.sym;
+}
+function thSetBridgeMax() {
+  var addr = wallet ? wallet.address : "0xDEMO";
+  var tokIn = thTokensForChain(bridgeState.from)[0];
+  document.getElementById("bridge-amount").value = thFakeBalance(tokIn.sym, addr);
+  thUpdateBridgeRoutes();
+}
+function thBridgeChainChanged(which) {
+  if (which === "from") bridgeState.from = document.getElementById("bridge-from").value;
+  else bridgeState.to = document.getElementById("bridge-to").value;
+  thPopulateBridgeSelects();
+  thResetBridgeStage();
+  thUpdateBridgeRoutes();
+}
+function thFlipBridge() {
+  var tmp = bridgeState.from; bridgeState.from = bridgeState.to; bridgeState.to = tmp;
+  document.getElementById("bridge-amount").value = "";
+  thPopulateBridgeSelects();
+  thResetBridgeStage();
+  thUpdateBridgeRoutes();
+}
+function thResetBridgeStage() {
+  bridgeState.timeouts.forEach(function (id) { clearTimeout(id); });
+  bridgeState.timeouts = [];
+  bridgeState.stage = "idle";
+  thRenderStage();
+}
+function thUpdateBridgeRoutes(skipTimerReset) {
+  var amt = parseFloat(document.getElementById("bridge-amount").value);
+  var box = document.getElementById("bridge-routes");
+  var btn = document.getElementById("bridge-submit-btn");
+  var tokIn = thTokensForChain(bridgeState.from)[0];
+  var tokOut = thTokensForChain(bridgeState.to)[0];
+  document.getElementById("bridge-usd-in").textContent = "≈ $" + ((amt || 0) * thPriceNum(tokIn.price)).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (!amt || amt <= 0) {
+    box.innerHTML = "";
+    document.getElementById("bridge-est-receive").textContent = "0.0";
+    document.getElementById("bridge-est-receive").style.color = "var(--text3)";
+    document.getElementById("bridge-fees").style.display = "none";
+    bridgeState.selectedRoute = null;
+    btn.disabled = true; btn.style.background = "rgba(255,255,255,.08)"; btn.style.color = "var(--text3)"; btn.style.cursor = "not-allowed";
+    clearInterval(bridgeRefreshTimer);
+    return;
+  }
+  var rate = thPriceNum(tokIn.price) / (thPriceNum(tokOut.price) || 1);
+  var net = amt * rate * 0.997;
+  var r = thRng(bridgeState.from + ":" + bridgeState.to + ":bridge:" + amt);
+  var routes = TH_BRIDGE_PROTOCOLS.map(function (p) { return { id: p.id, protocol: p.protocol, time: p.time, val: net * (1 + (r() - 0.5) * 0.01), best: p.best }; });
+  var bestIdx = 0;
+  for (var i = 1; i < routes.length; i++) if (routes[i].val > routes[bestIdx].val) bestIdx = i;
+  if (!bridgeState.selectedRoute) bridgeState.selectedRoute = routes[bestIdx].id;
+  box.innerHTML = routes.map(function (route, i) {
+    var sel = route.id === bridgeState.selectedRoute;
+    return '<div onclick="thSelectRoute(\'' + route.id + '\')" style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:10.5px;background:' + (sel ? "rgba(0,240,255,.1)" : "rgba(255,255,255,.03)") + ";border:1px solid " + (sel ? "#00F0FF" : "transparent") + ';"><span>' +
+      route.protocol + " &middot; " + route.time + (i === bestIdx ? " ✓ fast" : "") + "</span><span>" + route.val.toFixed(4) + " " + tokOut.sym + "</span></div>";
+  }).join("");
+  var chosen = routes.find(function (rt) { return rt.id === bridgeState.selectedRoute; }) || routes[bestIdx];
+  document.getElementById("bridge-est-receive").textContent = chosen.val.toFixed(6) + " " + tokOut.sym;
+  document.getElementById("bridge-est-receive").style.color = "#FFFFFF";
+  bridgeState.lastQuote = { tokIn: tokIn, tokOut: tokOut, receive: chosen.val, route: chosen };
+
+  document.getElementById("bridge-fees").style.display = "flex";
+  document.getElementById("bridge-gas-from").textContent = "~$" + (TH_GAS_BY_CHAIN[bridgeState.from] || TH_GAS_BY_CHAIN.ethereum).feeUsd.toFixed(2);
+  document.getElementById("bridge-gas-to").textContent = "~$" + (TH_GAS_BY_CHAIN[bridgeState.to] || TH_GAS_BY_CHAIN.ethereum).feeUsd.toFixed(2);
+  document.getElementById("bridge-fee-pct").textContent = (amt * 0.003).toFixed(6) + " " + tokIn.sym;
+
+  btn.disabled = bridgeState.stage !== "idle";
+  btn.style.cursor = bridgeState.stage === "idle" ? "pointer" : "not-allowed";
+  btn.style.background = bridgeState.stage === "idle" ? "#00F0FF" : "rgba(255,255,255,.08)";
+  btn.style.color = bridgeState.stage === "idle" ? "#041019" : "var(--text3)";
+
+  if (!skipTimerReset) thResetBridgeRefreshTimer();
+}
+function thResetBridgeRefreshTimer() {
+  clearInterval(bridgeRefreshTimer);
+  bridgeRefreshCountdown = 10;
+  document.getElementById("bridge-refresh-secs").textContent = bridgeRefreshCountdown;
+  bridgeRefreshTimer = setInterval(function () {
+    bridgeRefreshCountdown--;
+    if (bridgeRefreshCountdown <= 0) { thUpdateBridgeRoutes(true); return; }
+    var el = document.getElementById("bridge-refresh-secs");
+    if (el) el.textContent = bridgeRefreshCountdown;
+  }, 1000);
+}
+function thSelectRoute(id) { bridgeState.selectedRoute = id; thUpdateBridgeRoutes(true); }
+function thRenderStage() {
+  document.getElementById("stage-initiated").style.color = bridgeState.stage !== "idle" ? "#00F0FF" : "var(--text3)";
+  document.getElementById("stage-relaying").style.color = (bridgeState.stage === "relaying" || bridgeState.stage === "settled") ? "#00F0FF" : "var(--text3)";
+  document.getElementById("stage-settled").style.color = bridgeState.stage === "settled" ? "#00FF87" : "var(--text3)";
+  var btn = document.getElementById("bridge-submit-btn");
+  btn.textContent = bridgeState.stage === "settled" ? "Bridge complete (simulated)" : "Review Bridge";
+  var hasAmount = parseFloat(document.getElementById("bridge-amount").value) > 0;
+  btn.disabled = !hasAmount || bridgeState.stage !== "idle";
+  btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
+  btn.style.background = btn.disabled ? "rgba(255,255,255,.08)" : "#00F0FF";
+  btn.style.color = btn.disabled ? "var(--text3)" : "#041019";
+}
+function thDoBridge() {
+  if (document.getElementById("bridge-submit-btn").disabled) return;
+  bridgeState.stage = "initiated";
+  thRenderStage();
+  bridgeState.timeouts.push(setTimeout(function () { bridgeState.stage = "relaying"; thRenderStage(); }, 1200));
+  bridgeState.timeouts.push(setTimeout(function () { bridgeState.stage = "settled"; thRenderStage(); }, 2800));
+}
+
+// --- Review-before-confirm modal (shared) ---
+function thCloseReview() { document.getElementById("review-modal").classList.remove("open"); }
+
+function thOpenTradeReview() {
+  if (document.getElementById("trade-swap-btn").disabled) return;
+  var amt = parseFloat(document.getElementById("trade-amount").value);
+  var q = tradeState.lastQuote;
+  document.getElementById("review-body").innerHTML =
+    '<div class="th-heading" style="font-size:12px;margin-bottom:12px;">Review Swap</div>' +
+    '<div class="th-review-row"><span>You pay</span><span>' + amt + " " + tradeState.in.sym + "</span></div>" +
+    '<div class="th-review-row"><span>You receive</span><span>' + q.out.toFixed(6) + " " + tradeState.out.sym + "</span></div>" +
+    '<div class="th-review-row"><span>Rate</span><span>' + q.rate.toFixed(6) + "</span></div>" +
+    '<div class="th-review-row"><span>Price impact</span><span>' + q.impactPct.toFixed(2) + "%</span></div>" +
+    '<div class="th-review-row"><span>Slippage tolerance</span><span>' + tradeState.slippage + "%</span></div>" +
+    '<div class="th-review-row"><span>Minimum received</span><span>' + q.minReceived.toFixed(6) + " " + tradeState.out.sym + "</span></div>" +
+    '<div class="th-review-row" style="border-bottom:none;"><span>Network fee</span><span>~$' + q.gasUsd.toFixed(2) + "</span></div>" +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+    '<button onclick="thCloseReview()" style="flex:1;padding:10px 0;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:\'DM Sans\',sans-serif;font-weight:700;font-size:11px;cursor:pointer;">Cancel</button>' +
+    '<button onclick="thConfirmTradeSwap()" style="flex:1;padding:10px 0;border-radius:6px;border:none;background:#00F0FF;color:#041019;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:11px;cursor:pointer;">Confirm Swap</button>' +
+    "</div>";
+  document.getElementById("review-modal").classList.add("open");
+}
+function thConfirmTradeSwap() {
+  var amt = document.getElementById("trade-amount").value;
+  var q = tradeState.lastQuote;
+  document.getElementById("review-body").innerHTML =
+    '<div class="th-receipt"><div style="font-size:34px;color:#00FF87;">&#10003;</div>' +
+    '<div class="th-heading" style="font-size:13px;margin-top:8px;">Swapped (simulated)</div>' +
+    '<div style="font-size:11px;color:var(--text2);margin-top:8px;">' + amt + " " + tradeState.in.sym + " &rarr; " + q.out.toFixed(6) + " " + tradeState.out.sym + "</div>" +
+    '<button onclick="thCloseReview()" style="margin-top:16px;padding:8px 20px;border-radius:6px;border:none;background:rgba(255,255,255,.08);color:var(--text);font-family:inherit;font-size:11px;cursor:pointer;">Close</button>' +
+    "</div>";
+  document.getElementById("trade-swap-btn").textContent = "Swapped (simulated)";
+}
+
+function thOpenBridgeReview() {
+  if (document.getElementById("bridge-submit-btn").disabled) return;
+  var amt = document.getElementById("bridge-amount").value;
+  var q = bridgeState.lastQuote;
+  document.getElementById("review-body").innerHTML =
+    '<div class="th-heading" style="font-size:12px;margin-bottom:12px;">Review Bridge</div>' +
+    '<div class="th-review-row"><span>You send</span><span>' + amt + " " + q.tokIn.sym + " (" + bridgeState.from + ")</span></div>" +
+    '<div class="th-review-row"><span>You receive</span><span>' + q.receive.toFixed(6) + " " + q.tokOut.sym + " (" + bridgeState.to + ")</span></div>" +
+    '<div class="th-review-row"><span>Route</span><span>' + q.route.protocol + " &middot; " + q.route.time + "</span></div>" +
+    '<div class="th-review-row"><span>Source gas</span><span>~$' + (TH_GAS_BY_CHAIN[bridgeState.from] || TH_GAS_BY_CHAIN.ethereum).feeUsd.toFixed(2) + "</span></div>" +
+    '<div class="th-review-row" style="border-bottom:none;"><span>Destination gas</span><span>~$' + (TH_GAS_BY_CHAIN[bridgeState.to] || TH_GAS_BY_CHAIN.ethereum).feeUsd.toFixed(2) + "</span></div>" +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+    '<button onclick="thCloseReview()" style="flex:1;padding:10px 0;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:\'DM Sans\',sans-serif;font-weight:700;font-size:11px;cursor:pointer;">Cancel</button>' +
+    '<button onclick="thConfirmBridge()" style="flex:1;padding:10px 0;border-radius:6px;border:none;background:#00F0FF;color:#041019;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:11px;cursor:pointer;">Confirm Bridge</button>' +
+    "</div>";
+  document.getElementById("review-modal").classList.add("open");
+}
+function thConfirmBridge() {
+  thCloseReview();
+  thDoBridge();
+}
+
+// --- init ---
+thRenderNav("token-detail");
+renderIdentity();
+renderChart();
+initExplorer();
+
+tradeState.in = thTokensForChain(token.chain)[0];
+tradeState.out = thTokensForChain(token.chain)[1] || thTokensForChain(token.chain)[0];
+thRefreshTradeButtons();
+thUpdateQuote();
+
+bridgeState.to = TH_CHAINS.filter(function (c) { return c !== bridgeState.from; })[0];
+thPopulateBridgeSelects();
+thRenderStage();
+</script>
+</body>
+</html>

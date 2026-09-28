@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order-flow Stub — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div id="th-nav"></div>
+
+  <div style="padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;">
+
+    <div class="th-card" style="padding:24px;text-align:center;">
+      <div class="th-heading" style="font-size:16px;color:#00F0FF;">&#128679; Volumetric Orderflow Footprint &mdash; Coming Soon</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Full engine ships in a later dedicated release.</div>
+    </div>
+
+    <div class="th-card" style="display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap;">
+      <select id="of-chain" onchange="render()" class="th-pill" style="font-family:inherit;">
+        <option value="all">All Chains</option>
+      </select>
+      <span id="of-crypto" class="th-pill active" onclick="thSetAssetClass('crypto')">Crypto</span>
+      <span id="of-stocks" class="th-pill" onclick="thSetAssetClass('stocks')">Stocks</span>
+      <span id="of-all-class" class="th-pill" onclick="thSetAssetClass('all')">All</span>
+      <input id="of-search" type="text" placeholder="&#128269; Search" oninput="render()" style="background:var(--field);border:1px solid var(--border2);border-radius:999px;padding:6px 12px;color:var(--text);font-size:11px;font-family:inherit;">
+      <div style="flex:1;"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);"><input type="checkbox" id="of-whale-only" onchange="render()"> Whale-only</label>
+    </div>
+
+    <div class="th-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="th-row th-heading" style="grid-template-columns:.6fr 1.4fr 1fr .8fr 1fr 1fr;color:var(--text3);font-size:10px;height:36px;">
+        <span>Sym</span><span>Token</span><span>Pool</span><span>Chain</span><span>Whale Count</span><span>Class</span>
+      </div>
+      <div id="of-rows" style="flex:1;overflow-y:auto;"></div>
+      <div id="of-empty" style="display:none;padding:24px;text-align:center;color:var(--text3);font-size:11px;">No rows match the current filters.</div>
+    </div>
+
+    <div class="th-card" style="display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:11px;color:var(--text3);">
+      <span style="width:8px;height:8px;border-radius:50%;background:#00FF87;display:inline-block;"></span>
+      <span style="color:#00FF87;">Live</span>
+      <span>&middot; Last updated <span id="of-updated">0</span>s ago</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var ofState = { assetClass: "crypto", chain: "all" };
+
+var chainSel = document.getElementById("of-chain");
+TH_CHAINS.forEach(function (c) {
+  var opt = document.createElement("option");
+  opt.value = c; opt.textContent = c;
+  chainSel.appendChild(opt);
+});
+
+function thSetAssetClass(cls) {
+  ofState.assetClass = cls;
+  ["crypto", "stocks", "all-class"].forEach(function (k) {
+    document.getElementById("of-" + k).classList.toggle("active", k.replace("-class", "") === cls);
+  });
+  render();
+}
+
+function thGoOfToken(sym) {
+  if (thTokenBySym(sym).sym === sym) window.location.href = "2-token-detail.html?token=" + sym;
+}
+
+function render() {
+  var q = document.getElementById("of-search").value.trim().toLowerCase();
+  var whaleOnly = document.getElementById("of-whale-only").checked;
+  var chain = chainSel.value;
+  var rows = TH_ORDERFLOW_ROWS.filter(function (r) {
+    if (ofState.assetClass !== "all" && r.assetClass !== ofState.assetClass) return false;
+    if (chain !== "all" && r.chain !== chain) return false;
+    if (whaleOnly && r.whales < 15) return false;
+    if (q && r.sym.toLowerCase().indexOf(q) === -1 && r.token.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  document.getElementById("of-empty").style.display = rows.length === 0 ? "block" : "none";
+  document.getElementById("of-rows").innerHTML = rows.map(function (r) {
+    var exists = TH_TOKENS.some(function (t) { return t.sym === r.sym; });
+    return '<div class="th-row' + (exists ? " clickable" : "") + '" style="grid-template-columns:.6fr 1.4fr 1fr .8fr 1fr 1fr;" onclick="thGoOfToken(\'' + r.sym + '\')">' +
+      '<span style="color:var(--text3);">' + r.sym + "</span><span>" + r.token + "</span><span>" + r.pool + "</span><span>" + r.chain + "</span><span>" + r.whales + '</span><span style="color:' + r.clsColor + ';">' + r.cls + "</span></div>";
+  }).join("");
+}
+
+thRenderNav("order-flow");
+render();
+
+var seconds = 0;
+setInterval(function () {
+  seconds++;
+  document.getElementById("of-updated").textContent = seconds;
+  if (seconds % 5 === 0) seconds = 0;
+}, 1000);
+</script>
+</body>
+</html>

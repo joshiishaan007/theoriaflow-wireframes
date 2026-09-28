@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallet Overview / Portfolio — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div id="th-nav"></div>
+
+  <div style="padding:16px 20px;flex:1;">
+
+    <div id="not-connected" style="display:none;text-align:center;padding:60px 20px;">
+      <div class="th-heading" style="font-size:16px;color:var(--cyan);">No wallet connected</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">Connect a wallet to see your simulated portfolio.</div>
+      <button class="th-wallet-btn" style="margin-top:16px;" onclick="thOpenWalletModal()">Connect Wallet</button>
+    </div>
+
+    <div id="connected-view" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <div>
+          <div class="th-heading" style="font-size:11px;color:var(--text2);">Portfolio</div>
+          <div id="pf-address" style="font-size:13px;font-weight:700;margin-top:2px;"></div>
+        </div>
+        <div style="flex:1;"></div>
+        <div class="th-card" style="padding:14px 22px;text-align:right;">
+          <div class="th-metric-label">Total Value</div>
+          <div id="pf-total" style="font-size:22px;font-weight:800;color:#00FF87;"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
+
+        <div class="th-card">
+          <div class="th-row th-heading" style="grid-template-columns:1.4fr .9fr .9fr .8fr .6fr;color:var(--text3);font-size:10px;height:36px;">
+            <span>Token</span><span>Qty</span><span>Price</span><span>Value</span><span>24h</span>
+          </div>
+          <div id="pf-rows"></div>
+        </div>
+
+        <div class="th-card" style="padding:16px;">
+          <div class="th-heading" style="font-size:10px;color:var(--text3);margin-bottom:12px;">Allocation</div>
+          <div id="pf-allocation" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var w = thConnectedWallet();
+thRenderNav("portfolio");
+
+if (!w) {
+  document.getElementById("not-connected").style.display = "block";
+} else {
+  document.getElementById("connected-view").style.display = "block";
+  document.getElementById("pf-address").textContent = w.provider + " · " + w.address;
+
+  var holdings = thPortfolioFor(w.address);
+  var total = holdings.reduce(function (sum, h) { return sum + h.valueUsd; }, 0);
+  document.getElementById("pf-total").textContent = "$" + total.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  var palette = ["#00F0FF", "#00FF87", "#F472B6", "#FBBF24", "#38BDF8", "#A78BFA", "#F59E0B"];
+  document.getElementById("pf-rows").innerHTML = holdings.map(function (h) {
+    var chg = h.token.p24h >= 0 ? "#00FF87" : "#FF3B56";
+    return '<div class="th-row clickable" style="grid-template-columns:1.4fr .9fr .9fr .8fr .6fr;" onclick="window.location.href=\'2-token-detail.html?token=' + h.token.sym + '\'">' +
+      '<span style="display:flex;align-items:center;gap:8px;"><span style="width:20px;height:20px;border-radius:50%;background:var(--field);display:inline-block;"></span>' + h.token.sym + '<span style="color:var(--text3);font-size:9px;text-transform:capitalize;">' + h.token.chain + "</span></span>" +
+      "<span>" + h.qty.toLocaleString() + "</span>" +
+      "<span>" + h.token.price + "</span>" +
+      "<span>$" + h.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + "</span>" +
+      '<span style="color:' + chg + ';">' + (h.token.p24h >= 0 ? "+" : "") + h.token.p24h + "%</span></div>";
+  }).join("");
+
+  document.getElementById("pf-allocation").innerHTML = holdings.map(function (h, i) {
+    var pct = total > 0 ? (h.valueUsd / total) * 100 : 0;
+    var c = palette[i % palette.length];
+    return '<div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px;"><span>' + h.token.sym + "</span><span>" + pct.toFixed(1) + "%</span></div>" +
+      '<div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + c + ';"></div></div>' +
+      "</div>";
+  }).join("");
+}
+</script>
+</body>
+</html>

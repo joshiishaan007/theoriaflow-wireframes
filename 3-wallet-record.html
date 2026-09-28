@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallet Record / Holders — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div id="th-nav"></div>
+
+  <div style="padding:8px;display:flex;gap:8px;flex:1;">
+    <div class="th-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;border-bottom:1px solid var(--border);" id="cat-tabs">
+        <button class="th-tab active" data-cat="identities" onclick="thSetCat('identities')">Identities</button>
+        <button class="th-tab" data-cat="hunters" onclick="thSetCat('hunters')">Early Hunters</button>
+        <button class="th-tab" data-cat="whales" onclick="thSetCat('whales')">Token Whales</button>
+        <button class="th-tab" data-cat="contracts" onclick="thSetCat('contracts')">Contracts</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;" id="badge-chips">
+        <span class="th-pill" data-b="Whale" onclick="thToggleBadgeFilter('Whale')">Whale</span>
+        <span class="th-pill" data-b="Smart$" onclick="thToggleBadgeFilter('Smart$')">Smart$</span>
+        <span class="th-pill" data-b="Bot" onclick="thToggleBadgeFilter('Bot')">Bot</span>
+        <span class="th-pill" data-b="CEX" onclick="thToggleBadgeFilter('CEX')">CEX</span>
+        <span class="th-pill" data-b="Dev" onclick="thToggleBadgeFilter('Dev')">Dev</span>
+        <span class="th-pill" data-b="Router" onclick="thToggleBadgeFilter('Router')">Router</span>
+        <div style="flex:1;"></div>
+        <span class="th-pill" id="space-pill" onclick="thCycleSpace()">Space: All</span>
+      </div>
+      <div class="th-row th-heading" style="grid-template-columns:1.4fr 1fr .8fr .8fr 1fr 1fr;height:36px;color:var(--text3);font-size:10px;cursor:default;">
+        <span>Wallet</span><span>Entity Type</span><span>Balance</span><span>% Supply</span><span>First Seen</span><span>Links</span>
+      </div>
+      <div id="wallet-rows" style="flex:1;overflow-y:auto;"></div>
+      <div id="wallet-empty" style="display:none;padding:24px;text-align:center;color:var(--text3);font-size:11px;">No wallets match the current filters.</div>
+    </div>
+
+    <div id="drawer" class="th-card" style="width:340px;flex:0 0 340px;display:none;flex-direction:column;padding:16px;gap:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div id="d-wallet" style="font-size:14px;font-weight:700;"></div>
+          <span id="d-badge" style="border-radius:3px;padding:2px 7px;font-size:9.5px;font-weight:700;display:inline-block;margin-top:6px;"></span>
+        </div>
+        <button onclick="document.getElementById('drawer').style.display='none'" style="background:transparent;border:none;color:var(--text2);font-size:14px;cursor:pointer;">&#10005;</button>
+      </div>
+      <div>
+        <div class="th-heading" style="font-size:10px;color:var(--text3);margin-bottom:8px;">Balance History</div>
+        <svg id="d-chart" width="100%" height="80" viewBox="0 0 300 80"></svg>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="th-pill" style="flex:1;text-align:center;">Etherscan</span>
+        <span class="th-pill" style="flex:1;text-align:center;">Copy addr</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+TH_WALLETS.forEach(function (w, i) { w.space = i % 2 === 0 ? "public" : "private"; });
+
+var wState = { cat: "identities", badge: null, space: "all" };
+
+function thSetCat(cat) {
+  wState.cat = cat;
+  document.querySelectorAll("#cat-tabs .th-tab").forEach(function (el) { el.classList.toggle("active", el.dataset.cat === cat); });
+  render();
+}
+function thToggleBadgeFilter(b) {
+  wState.badge = wState.badge === b ? null : b;
+  document.querySelectorAll("#badge-chips .th-pill[data-b]").forEach(function (el) {
+    el.classList.toggle("active", el.dataset.b === wState.badge);
+  });
+  render();
+}
+function thCycleSpace() {
+  var order = ["all", "public", "private"];
+  wState.space = order[(order.indexOf(wState.space) + 1) % order.length];
+  document.getElementById("space-pill").textContent = "Space: " + (wState.space === "all" ? "All" : wState.space.charAt(0).toUpperCase() + wState.space.slice(1));
+  render();
+}
+
+function thBadgeStyle(cls) { return TH_BADGE_STYLES[cls] || TH_BADGE_STYLES.cyan; }
+
+function render() {
+  var rows = TH_WALLETS.filter(function (w) {
+    return w.cat === wState.cat &&
+      (!wState.badge || w.badge === wState.badge) &&
+      (wState.space === "all" || w.space === wState.space);
+  });
+  document.getElementById("wallet-empty").style.display = rows.length === 0 ? "block" : "none";
+  document.getElementById("wallet-rows").innerHTML = rows.map(function (w) {
+    var s = thBadgeStyle(w.cls);
+    return '<div class="th-row clickable" style="grid-template-columns:1.4fr 1fr .8fr .8fr 1fr 1fr;" onclick="thSelectWallet(\'' + w.wallet + '\')">' +
+      "<span>" + w.wallet + "</span>" +
+      '<span><span style="background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.color + ';border-radius:3px;padding:2px 7px;font-size:9.5px;font-weight:700;">' + w.badge + "</span></span>" +
+      "<span>" + w.balance + "</span><span>" + w.pct + "</span>" +
+      '<span style="color:var(--text3);">' + w.firstSeen + "</span>" +
+      '<span style="color:#00F0FF;">&#8599; &#8599;</span></div>';
+  }).join("");
+}
+
+function thSelectWallet(addr) {
+  var w = TH_WALLETS.find(function (x) { return x.wallet === addr; });
+  if (!w) return;
+  var s = thBadgeStyle(w.cls);
+  document.getElementById("drawer").style.display = "flex";
+  document.getElementById("d-wallet").textContent = w.wallet;
+  var b = document.getElementById("d-badge");
+  b.textContent = w.badge; b.style.color = s.color; b.style.borderColor = s.color; b.style.border = "1px solid " + s.color; b.style.background = s.bg;
+  var pts = [], y = 50;
+  var seedFn = (function () {
+    var h = 0; for (var i = 0; i < w.wallet.length; i++) h = (h * 31 + w.wallet.charCodeAt(i)) >>> 0;
+    return function () { h = (h * 1103515245 + 12345) >>> 0; return (h % 1000) / 1000; };
+  })();
+  for (var i = 0; i <= 10; i++) { y += (seedFn() - 0.5) * 20; y = Math.max(5, Math.min(75, y)); pts.push((i * 30) + "," + Math.round(y)); }
+  document.getElementById("d-chart").innerHTML = '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#00F0FF" stroke-width="2"/>';
+}
+
+thRenderNav("wallet-record");
+render();
+
+var deepLinkWallet = thQueryParam("wallet");
+if (deepLinkWallet) thSelectWallet(deepLinkWallet);
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tearsheet Dock — TheoriaFlow Wireframe</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<script src="assets/nav.js"></script>
+</head>
+<body>
+<div style="min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div id="th-nav"></div>
+
+  <div style="padding:8px;flex:1;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <a id="back-link" href="#" style="font-size:11px;color:var(--text2);">&larr; Back to token</a>
+      <span id="dock-title" class="th-heading" style="font-size:12px;color:var(--cyan);"></span>
+    </div>
+    <div class="th-card" style="display:flex;flex-direction:column;overflow:hidden;">
+
+      <div style="display:flex;border-bottom:1px solid var(--border);overflow-x:auto;">
+        <button class="th-tab active" data-tab="pools" onclick="showTab('pools')">Pools</button>
+        <button class="th-tab" data-tab="holders" onclick="showTab('holders')">Holders</button>
+        <button class="th-tab" data-tab="launch" onclick="showTab('launch')">Launch Group</button>
+        <button class="th-tab" data-tab="stealth" onclick="showTab('stealth')">Stealth Accum</button>
+        <button class="th-tab" data-tab="orders" onclick="showTab('orders')">Limit Orders</button>
+        <button class="th-tab" data-tab="ai" onclick="showTab('ai')">Ask AI</button>
+      </div>
+
+      <div style="padding:12px;">
+
+        <div class="th-panel active" data-panel="pools">
+          <div class="th-row th-heading" style="grid-template-columns:1.4fr .8fr .9fr .9fr .8fr .6fr;color:var(--text3);font-size:10px;height:34px;"><span>Pool</span><span>DEX</span><span>Liq</span><span>Vol24h</span><span>Fee Tier</span><span>Age</span></div>
+          <div id="pools-rows"></div>
+        </div>
+
+        <div class="th-panel" data-panel="holders" style="display:flex;gap:20px;">
+          <div style="flex:1;">
+            <div class="th-row th-heading" style="grid-template-columns:1fr .8fr .8fr 1fr;color:var(--text3);font-size:10px;height:34px;"><span>Tier</span><span>Wallets</span><span>% Supply</span><span>Avg Balance</span></div>
+            <div id="holders-rows"></div>
+            <div style="display:flex;align-items:end;gap:6px;height:70px;padding:14px 14px 0;">
+              <div style="width:40px;height:70%;background:#00F0FF;border-radius:3px 3px 0 0;"></div>
+              <div style="width:40px;height:45%;background:#00F0FF;opacity:.7;border-radius:3px 3px 0 0;"></div>
+              <div style="width:40px;height:25%;background:#00F0FF;opacity:.45;border-radius:3px 3px 0 0;"></div>
+              <span style="font-size:9px;color:var(--text3);align-self:center;margin-left:8px;">Top10 / Top50 / Top100</span>
+            </div>
+          </div>
+          <div style="width:200px;flex:0 0 200px;text-align:center;">
+            <div class="th-heading" style="font-size:10px;color:var(--text3);margin-bottom:10px;">Gini Coefficient</div>
+            <div style="font-size:32px;font-weight:800;color:#FF3B56;">0.62</div>
+            <div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;margin-top:10px;overflow:hidden;"><div style="width:62%;height:100%;background:#FF3B56;"></div></div>
+          </div>
+        </div>
+
+        <div class="th-panel" data-panel="launch">
+          <div class="th-row th-heading" style="grid-template-columns:1fr 1fr 1.2fr 1fr;color:var(--text3);font-size:10px;height:34px;"><span>Bundle ID</span><span>Wallets in Bundle</span><span>Funding Source</span><span>Launch Delta</span></div>
+          <div id="launch-rows"></div>
+        </div>
+
+        <div class="th-panel" data-panel="stealth">
+          <div class="th-row th-heading" style="grid-template-columns:1.2fr 1.2fr .9fr 1fr;color:var(--text3);font-size:10px;height:34px;"><span>Wallet</span><span>Accumulation Window</span><span>Avg Entry</span><span>Unrealized</span></div>
+          <div id="stealth-rows"></div>
+        </div>
+
+        <div class="th-panel" data-panel="orders">
+          <div class="th-row th-heading" style="grid-template-columns:.6fr .8fr .8fr 1.2fr .6fr .8fr;color:var(--text3);font-size:10px;height:34px;"><span>Side</span><span>Price</span><span>Size</span><span>Wallet</span><span>Age</span><span>Status</span></div>
+          <div id="orders-rows"></div>
+        </div>
+
+        <div class="th-panel" data-panel="ai">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="ai-chips"></div>
+          <div class="th-card" id="ai-answer" style="padding:16px;font-size:12px;color:#CBD5E1;line-height:1.6;">Pick a question above to see a canned answer.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var token = thTokenBySym(thQueryParam("token") || "PEPE");
+document.getElementById("dock-title").textContent = "Tearsheet — " + token.sym;
+document.getElementById("back-link").href = "2-token-detail.html?token=" + token.sym;
+
+function showTab(name) {
+  document.querySelectorAll(".th-tab").forEach(function (el) { el.classList.toggle("active", el.dataset.tab === name); });
+  document.querySelectorAll(".th-panel").forEach(function (el) { el.classList.toggle("active", el.dataset.panel === name); });
+}
+
+document.getElementById("pools-rows").innerHTML = TH_POOLS.map(function (p) {
+  return '<div class="th-row" style="grid-template-columns:1.4fr .8fr .9fr .9fr .8fr .6fr;"><span>' + p.pool + "</span><span>" + p.dex + "</span><span>" + p.liq + "</span><span>" + p.vol + "</span><span>" + p.fee + '</span><span style="color:var(--text3);">' + p.age + "</span></div>";
+}).join("");
+
+document.getElementById("holders-rows").innerHTML = TH_HOLDER_TIERS.map(function (h) {
+  return '<div class="th-row" style="grid-template-columns:1fr .8fr .8fr 1fr;"><span>' + h.tier + "</span><span>" + h.wallets + "</span><span>" + h.pct + "</span><span>" + h.avg + "</span></div>";
+}).join("");
+
+document.getElementById("launch-rows").innerHTML = TH_BUNDLES.map(function (b) {
+  return '<div class="th-row" style="grid-template-columns:1fr 1fr 1.2fr 1fr;"><span>' + b.id + "</span><span>" + b.wallets + "</span><span>" + b.source + '</span><span style="color:#FF3B56;">' + b.delta + "</span></div>";
+}).join("");
+
+document.getElementById("stealth-rows").innerHTML = TH_STEALTH.map(function (s) {
+  return '<div class="th-row" style="grid-template-columns:1.2fr 1.2fr .9fr 1fr;"><span>' + s.wallet + "</span><span>" + s.window + "</span><span>" + s.entry + '</span><span style="color:#00FF87;">' + s.unreal + "</span></div>";
+}).join("");
+
+document.getElementById("orders-rows").innerHTML = TH_ORDERS.map(function (o) {
+  var c = o.side === "BUY" ? "#00FF87" : "#FF3B56";
+  return '<div class="th-row" style="grid-template-columns:.6fr .8fr .8fr 1.2fr .6fr .8fr;"><span style="color:' + c + ';font-weight:700;">' + o.side + "</span><span>" + o.price + "</span><span>" + o.size + "</span><span>" + o.wallet + '</span><span style="color:var(--text3);">' + o.age + "</span><span>" + o.status + "</span></div>";
+}).join("");
+
+document.getElementById("ai-chips").innerHTML = Object.keys(TH_AI_ANSWERS).map(function (q) {
+  return '<span class="th-pill" onclick="thAskAi(this,\'' + q.replace(/'/g, "\\'") + '\')">' + q + "</span>";
+}).join("");
+function thAskAi(el, q) {
+  document.querySelectorAll("#ai-chips .th-pill").forEach(function (p) { p.classList.remove("active"); });
+  el.classList.add("active");
+  document.getElementById("ai-answer").textContent = TH_AI_ANSWERS[q];
+}
+
+thRenderNav("tearsheet");
+</script>
+</body>
+</html>
